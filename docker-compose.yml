@@ -1,0 +1,237 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: sonido-vivo-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD en .env}
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - sonido-vivo-mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - sonido-vivo-network
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: sonido-vivo-eureka
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8761:8761"
+    networks:
+      - sonido-vivo-network
+
+  auth:
+    build:
+      context: .
+      dockerfile: auth/Dockerfile
+    container_name: sonido-vivo-auth
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?Define JWT_SECRET_BASE64 en .env}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Define INTERNAL_SERVICE_TOKEN en .env}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@demo.cl}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:?Define ADMIN_BOOTSTRAP_PASSWORD en .env}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    networks:
+      - sonido-vivo-network
+
+  catalogo:
+    build:
+      context: .
+      dockerfile: catalogo/Dockerfile
+    container_name: sonido-vivo-catalogo
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    networks:
+      - sonido-vivo-network
+
+  mensajeria:
+    build:
+      context: .
+      dockerfile: mensajeria/Dockerfile
+    container_name: sonido-vivo-mensajeria
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    networks:
+      - sonido-vivo-network
+
+  carrito:
+    build:
+      context: .
+      dockerfile: carrito/Dockerfile
+    container_name: sonido-vivo-carrito
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      catalogo:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    networks:
+      - sonido-vivo-network
+
+  pedidos:
+    build:
+      context: .
+      dockerfile: pedidos/Dockerfile
+    container_name: sonido-vivo-pedidos
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      catalogo:
+        condition: service_started
+      carrito:
+        condition: service_started
+      pagos:
+        condition: service_started
+      ventas:
+        condition: service_started
+    ports:
+      - "8085:8085"
+    networks:
+      - sonido-vivo-network
+
+  pagos:
+    build:
+      context: .
+      dockerfile: pagos/Dockerfile
+    container_name: sonido-vivo-pagos
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8086:8086"
+    networks:
+      - sonido-vivo-network
+
+  ventas:
+    build:
+      context: .
+      dockerfile: ventas/Dockerfile
+    container_name: sonido-vivo-ventas
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8087:8087"
+    networks:
+      - sonido-vivo-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: sonido-vivo-gateway
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      FRONTEND_ORIGIN: http://localhost:5173
+    depends_on:
+      eureka-server:
+        condition: service_started
+      auth:
+        condition: service_started
+      catalogo:
+        condition: service_started
+      pedidos:
+        condition: service_started
+      carrito:
+        condition: service_started
+      mensajeria:
+        condition: service_started
+      ventas:
+        condition: service_started
+      pagos:
+        condition: service_started
+    ports:
+      - "8090:8090"
+    networks:
+      - sonido-vivo-network
+
+volumes:
+  sonido-vivo-mysql-data:
+
+networks:
+  sonido-vivo-network:
+    driver: bridge

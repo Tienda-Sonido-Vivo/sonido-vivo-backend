@@ -1,0 +1,130 @@
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Autenticación
+        url: /auth/v3/api-docs
+      - name: Catálogo
+        url: /catalogo/v3/api-docs
+      - name: Mensajería
+        url: /mensajeria/v3/api-docs
+      - name: Carrito
+        url: /carrito/v3/api-docs
+      - name: Pedidos
+        url: /pedidos/v3/api-docs
+      - name: Pagos
+        url: /pagos/v3/api-docs
+      - name: Ventas
+        url: /ventas/v3/api-docs
+
+server:
+  port: 8090
+
+spring:
+  application:
+    name: sonido-vivo-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-openapi
+              uri: lb://SONIDO-VIVO-AUTH
+              predicates:
+                - Path=/auth/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: catalogo-openapi
+              uri: lb://SONIDO-VIVO-CATALOGO
+              predicates:
+                - Path=/catalogo/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: mensajeria-openapi
+              uri: lb://SONIDO-VIVO-MENSAJERIA
+              predicates:
+                - Path=/mensajeria/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: carrito-openapi
+              uri: lb://SONIDO-VIVO-CARRITO
+              predicates:
+                - Path=/carrito/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: pedidos-openapi
+              uri: lb://SONIDO-VIVO-PEDIDOS
+              predicates:
+                - Path=/pedidos/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: pagos-openapi
+              uri: lb://SONIDO-VIVO-PAGOS
+              predicates:
+                - Path=/pagos/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: ventas-openapi
+              uri: lb://SONIDO-VIVO-VENTAS
+              predicates:
+                - Path=/ventas/v3/api-docs
+              filters:
+                - StripPrefix=1
+            - id: auth
+              uri: lb://SONIDO-VIVO-AUTH
+              predicates:
+                - Path=/api/auth/**
+            - id: catalogo
+              uri: lb://SONIDO-VIVO-CATALOGO
+              predicates:
+                - Path=/api/catalogo/**
+            - id: carrito
+              uri: lb://SONIDO-VIVO-CARRITO
+              predicates:
+                - Path=/api/carrito/**
+            - id: pedidos
+              uri: lb://SONIDO-VIVO-PEDIDOS
+              predicates:
+                - Path=/api/pedidos/**
+            - id: pagos
+              uri: lb://SONIDO-VIVO-PAGOS
+              predicates:
+                - Path=/api/pagos/**
+            - id: mensajeria
+              uri: lb://SONIDO-VIVO-MENSAJERIA
+              predicates:
+                - Path=/api/contactos/**
+            - id: ventas
+              uri: lb://SONIDO-VIVO-VENTAS
+              predicates:
+                - Path=/api/ventas/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - ${FRONTEND_ORIGIN:http://localhost:5173}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Internal-Token
+              - X-Requested-With
+            allowCredentials: true
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
