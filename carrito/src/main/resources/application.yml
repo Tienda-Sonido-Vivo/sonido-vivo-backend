@@ -52,3 +52,9 @@ management:
     web:
       exposure:
         include: health,info
+
+logging:
+  level:
+    org.springframework.cloud.loadbalancer: TRACE
+    org.springframework.cloud.netflix.eureka: DEBUG
+    com.netflix.discovery: DEBUG

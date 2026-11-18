@@ -22,6 +22,23 @@ public class CarritoService {
     private final CarritoRepository carritoRepository;
     private final RestClient catalogoClient;
 
+    
+    public CarritoService(
+            CarritoRepository carritoRepository,
+            @org.springframework.beans.factory.annotation.Qualifier(
+                    "loadBalancedRestClientBuilder")
+            RestClient.Builder restClientBuilder,
+            @Value("${services.catalogo.url}") String catalogoUrl) {
+
+        this.carritoRepository = carritoRepository;
+
+        this.catalogoClient = restClientBuilder
+                .baseUrl(catalogoUrl)
+                .build();
+    }
+
+
+    /* 
     public CarritoService(
             CarritoRepository carritoRepository,
             RestClient.Builder restClientBuilder,
@@ -30,6 +47,8 @@ public class CarritoService {
         this.carritoRepository = carritoRepository;
         this.catalogoClient = restClientBuilder.baseUrl(catalogoUrl).build();
     }
+
+    */
 
     @Transactional(readOnly = true)
     public List<ItemCarritoDTO> listar(String correo) {

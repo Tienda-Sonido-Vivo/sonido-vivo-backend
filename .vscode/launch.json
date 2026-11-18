@@ -1,0 +1,94 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-EurekaServerApplication<eureka-server>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.eureka.EurekaServerApplication",
+            "projectName": "eureka-server",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-AuthApplication<auth>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.auth.AuthApplication",
+            "projectName": "auth",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-CatalogoApplication<catalogo>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.catalogo.CatalogoApplication",
+            "projectName": "catalogo",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-MensajeriaApplication<mensajeria>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.mensajeria.MensajeriaApplication",
+            "projectName": "mensajeria",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-CarritoApplication<carrito>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.carrito.CarritoApplication",
+            "projectName": "carrito",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-PedidosApplication<pedidos>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.pedidos.PedidosApplication",
+            "projectName": "pedidos",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-PagosApplication<pagos>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.pagos.PagosApplication",
+            "projectName": "pagos",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-VentasApplication<ventas>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.ventas.VentasApplication",
+            "projectName": "ventas",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ApiGatewayApplication<api-gateway>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.sonidovivo.gateway.ApiGatewayApplication",
+            "projectName": "api-gateway",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

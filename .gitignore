@@ -1,6 +1,8 @@
 target/
 .env
 .idea/
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/launch.json
 *.iml
 .DS_Store
