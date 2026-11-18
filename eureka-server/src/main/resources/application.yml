@@ -1,5 +1,9 @@
 server:
   port: 8761
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 3
 
 spring:
   application:

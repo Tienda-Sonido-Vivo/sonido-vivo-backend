@@ -44,11 +44,11 @@ public class Pedido {
     @Column(nullable = false)
     private boolean pagado;
 
+    @Column(name = "fecha_pago")
+    private LocalDateTime fechaPago;
+
     @Column(name = "venta_registrada", nullable = false)
     private boolean ventaRegistrada;
-
-    @Column(name = "pago_registrado", nullable = false)
-    private boolean pagoRegistrado;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "metodo_entrega", nullable = false, length = 20)
@@ -120,20 +120,20 @@ public class Pedido {
         this.pagado = pagado;
     }
 
+    public LocalDateTime getFechaPago() {
+        return fechaPago;
+    }
+
+    public void setFechaPago(LocalDateTime fechaPago) {
+        this.fechaPago = fechaPago;
+    }
+
     public boolean isVentaRegistrada() {
         return ventaRegistrada;
     }
 
     public void setVentaRegistrada(boolean ventaRegistrada) {
         this.ventaRegistrada = ventaRegistrada;
-    }
-
-    public boolean isPagoRegistrado() {
-        return pagoRegistrado;
-    }
-
-    public void setPagoRegistrado(boolean pagoRegistrado) {
-        this.pagoRegistrado = pagoRegistrado;
     }
 
     public MetodoEntrega getMetodoEntrega() {

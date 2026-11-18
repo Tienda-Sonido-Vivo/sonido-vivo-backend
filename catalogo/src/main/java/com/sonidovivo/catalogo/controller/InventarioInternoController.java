@@ -25,7 +25,7 @@ import com.sonidovivo.security.InternalTokenValidator;
 import jakarta.validation.Valid;
 
 @RestController
-@Tag(name = "Inventario interno", description = "Operaciones de reserva y liberación de stock utilizadas entre microservicios.")
+@Tag(name = "Inventario interno", description = "Operaciones internas heredadas de reserva/liberación. El checkout actualizado utiliza el descuento idempotente por pedido.")
 @RequestMapping("/api/catalogo/interno/productos")
 public class InventarioInternoController {
 
@@ -40,7 +40,7 @@ public class InventarioInternoController {
         this.tokenValidator = tokenValidator;
     }
     @Operation(summary = "Reservar stock",
-            description = "Reserva unidades de un producto para un proceso interno de compra. Requiere el token de comunicación entre microservicios.")
+            description = "Reserva unidades de un producto para procesos internos heredados. No se utiliza en el flujo de checkout actualizado. Requiere el token interno.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Stock reservado correctamente."),
             @ApiResponse(responseCode = "400", description = "La cantidad indicada no es válida."),
@@ -57,7 +57,7 @@ public class InventarioInternoController {
         return catalogoService.reservarStock(codigo, request.cantidad());
     }
     @Operation(summary = "Liberar stock reservado",
-            description = "Libera unidades previamente reservadas. Requiere el token de comunicación entre microservicios.")
+            description = "Libera unidades previamente reservadas por procesos heredados. No se utiliza en el flujo de checkout actualizado. Requiere el token interno.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Stock liberado correctamente."),
             @ApiResponse(responseCode = "400", description = "La cantidad indicada o el producto no son válidos."),

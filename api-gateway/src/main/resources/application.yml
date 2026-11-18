@@ -30,43 +30,43 @@ spring:
             - id: auth-openapi
               uri: lb://SONIDO-VIVO-AUTH
               predicates:
-                - Path=/auth/v3/api-docs
+                - Path=/auth/v3/api-docs,/auth/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: catalogo-openapi
               uri: lb://SONIDO-VIVO-CATALOGO
               predicates:
-                - Path=/catalogo/v3/api-docs
+                - Path=/catalogo/v3/api-docs,/catalogo/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: mensajeria-openapi
               uri: lb://SONIDO-VIVO-MENSAJERIA
               predicates:
-                - Path=/mensajeria/v3/api-docs
+                - Path=/mensajeria/v3/api-docs,/mensajeria/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: carrito-openapi
               uri: lb://SONIDO-VIVO-CARRITO
               predicates:
-                - Path=/carrito/v3/api-docs
+                - Path=/carrito/v3/api-docs,/carrito/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: pedidos-openapi
               uri: lb://SONIDO-VIVO-PEDIDOS
               predicates:
-                - Path=/pedidos/v3/api-docs
+                - Path=/pedidos/v3/api-docs,/pedidos/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: pagos-openapi
               uri: lb://SONIDO-VIVO-PAGOS
               predicates:
-                - Path=/pagos/v3/api-docs
+                - Path=/pagos/v3/api-docs,/pagos/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: ventas-openapi
               uri: lb://SONIDO-VIVO-VENTAS
               predicates:
-                - Path=/ventas/v3/api-docs
+                - Path=/ventas/v3/api-docs,/ventas/v3/api-docs/**
               filters:
                 - StripPrefix=1
             - id: auth
@@ -117,6 +117,9 @@ spring:
             allowCredentials: true
 
 eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
   client:
     register-with-eureka: true
     fetch-registry: true

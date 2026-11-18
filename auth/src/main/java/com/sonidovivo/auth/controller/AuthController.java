@@ -33,7 +33,7 @@ import com.sonidovivo.auth.service.UsuarioService;
 import jakarta.validation.Valid;
 
 @RestController
-@Tag(name = "Autenticación", description = "Operaciones de inicio y cierre de sesión, registro de clientes y activación de cuentas.")
+@Tag(name = "Autenticación", description = "Operaciones de inicio y cierre de sesión y registro de clientes. Los endpoints de activación se conservan únicamente para cuentas heredadas.")
 @RequestMapping("/api/auth")
 public class AuthController {
 
@@ -112,7 +112,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrarCliente(request));
     }
     @Operation(summary = "Completar activación de cuenta",
-            description = "Completa la activación de una cuenta mediante los datos de activación recibidos.")
+            description = "Completa la activación de una cuenta heredada. No forma parte del registro público ni envía correos.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Cuenta activada correctamente."),
             @ApiResponse(responseCode = "400", description = "El token de activación no es válido, expiró o ya fue utilizado."),

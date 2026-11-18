@@ -108,13 +108,14 @@ public class PedidoController {
         return pedidoService.buscar(codigo, authentication.getName(), personalAutorizado);
     }
     @Operation(summary = "Actualizar estado del pedido",
-            description = "Actualiza el estado de un pedido. Disponible para administradores y vendedores.")
+            description = "Actualiza el estado operacional de un pedido pagado. Disponible para administradores y vendedores; solo permite avanzar una etapa a la vez.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estado del pedido actualizado correctamente."),
             @ApiResponse(responseCode = "400", description = "El estado indicado no es válido o no se encontró el pedido."),
             @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
-            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos para actualizar pedidos.")
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos para actualizar pedidos."),
+            @ApiResponse(responseCode = "409", description = "El pedido aún no está pagado o el cambio de estado no es secuencial.")
     })
     @PatchMapping("/{codigo}/estado")
     @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")

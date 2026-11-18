@@ -9,14 +9,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.client.RestClient;
 import org.springframework.core.ParameterizedTypeReference;
 
@@ -28,6 +25,7 @@ import com.sonidovivo.pedidos.dto.EstadoPedidoRequestDTO;
 import com.sonidovivo.pedidos.dto.PedidoCreateRequestDTO;
 import com.sonidovivo.pedidos.dto.PedidoResponseDTO;
 import com.sonidovivo.pedidos.dto.ProductoCatalogoDTO;
+import com.sonidovivo.pedidos.event.PedidoPagadoEvent;
 import com.sonidovivo.pedidos.model.DatosClientePedido;
 import com.sonidovivo.pedidos.model.DetallePedido;
 import com.sonidovivo.pedidos.model.EstadoPedido;
@@ -38,7 +36,6 @@ import com.sonidovivo.pedidos.repository.PedidoRepository;
 @Service
 public class PedidoService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PedidoService.class);
     private static final BigDecimal COSTO_ENVIO = new BigDecimal("8990");
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern(
             "dd 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CL"));
@@ -46,83 +43,63 @@ public class PedidoService {
     private final PedidoRepository pedidoRepository;
     private final RestClient catalogoClient;
     private final RestClient carritoClient;
-    private final RestClient pagosClient;
-    private final RestClient ventasClient;
     private final String internalToken;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PedidoService(
             PedidoRepository pedidoRepository,
             RestClient.Builder restClientBuilder,
+            ApplicationEventPublisher eventPublisher,
             @Value("${services.catalogo.url}") String catalogoUrl,
             @Value("${services.carrito.url}") String carritoUrl,
-            @Value("${services.pagos.url}") String pagosUrl,
-            @Value("${services.ventas.url}") String ventasUrl,
             @Value("${app.internal-token}") String internalToken) {
 
         this.pedidoRepository = pedidoRepository;
         this.catalogoClient = restClientBuilder.clone().baseUrl(catalogoUrl).build();
         this.carritoClient = restClientBuilder.clone().baseUrl(carritoUrl).build();
-        this.pagosClient = restClientBuilder.clone().baseUrl(pagosUrl).build();
-        this.ventasClient = restClientBuilder.clone().baseUrl(ventasUrl).build();
         this.internalToken = internalToken;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public PedidoResponseDTO crear(PedidoCreateRequestDTO request, String correoAutenticado) {
-        List<ProductoReservado> reservados = new ArrayList<>();
+        List<CarritoItemDTO> itemsCarrito = carritoClient.get()
+                .uri("/api/carrito/interno/{correo}", correoAutenticado)
+                .header("X-Internal-Token", internalToken)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<CarritoItemDTO>>() {});
 
-        try {
-            List<CarritoItemDTO> itemsCarrito = carritoClient.get()
-                    .uri("/api/carrito/interno/{correo}", correoAutenticado)
-                    .header("X-Internal-Token", internalToken)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<List<CarritoItemDTO>>() {});
-
-            if (itemsCarrito == null || itemsCarrito.isEmpty()) {
-                throw new IllegalStateException("El carrito está vacío.");
-            }
-
-            for (CarritoItemDTO item : itemsCarrito) {
-                ProductoCatalogoDTO producto = catalogoClient.post()
-                        .uri("/api/catalogo/interno/productos/{codigo}/reservar", item.codigo())
-                        .header("X-Internal-Token", internalToken)
-                        .body(Map.of("cantidad", item.cantidad()))
-                        .retrieve()
-                        .body(ProductoCatalogoDTO.class);
-
-                if (producto == null) {
-                    throw new IllegalStateException("El catálogo no devolvió información del producto.");
-                }
-
-                reservados.add(new ProductoReservado(producto, item.cantidad()));
-            }
-
-            Pedido pedido = construirPedido(request, correoAutenticado, reservados);
-            Pedido guardado = pedidoRepository.save(pedido);
-
-            guardado.setCodigo(String.format("PED-%06d", guardado.getId()));
-            guardado = pedidoRepository.save(guardado);
-
-            if (registrarPagoPendiente(guardado)) {
-                guardado.setPagoRegistrado(true);
-                guardado = pedidoRepository.save(guardado);
-            }
-
-            try {
-                carritoClient.delete()
-                        .uri("/api/carrito/interno/{correo}", correoAutenticado)
-                        .header("X-Internal-Token", internalToken)
-                        .retrieve()
-                        .toBodilessEntity();
-            } catch (RuntimeException exception) {
-                logger.error("El pedido {} se creó, pero no se pudo vaciar el carrito.", guardado.getCodigo(), exception);
-            }
-
-            return aResponse(guardado);
-        } catch (RuntimeException exception) {
-            liberarReservas(reservados);
-            throw exception;
+        if (itemsCarrito == null || itemsCarrito.isEmpty()) {
+            throw new IllegalStateException("El carrito está vacío.");
         }
+
+        List<ProductoPedido> productos = new ArrayList<>();
+
+        for (CarritoItemDTO item : itemsCarrito) {
+            ProductoCatalogoDTO producto = catalogoClient.get()
+                    .uri("/api/catalogo/productos/{codigo}", item.codigo())
+                    .retrieve()
+                    .body(ProductoCatalogoDTO.class);
+
+            if (producto == null) {
+                throw new IllegalStateException("El catálogo no devolvió información del producto " + item.codigo() + ".");
+            }
+
+            if (item.cantidad() == null || item.cantidad() <= 0 || item.cantidad() > producto.stock()) {
+                throw new IllegalStateException(
+                        "No hay stock suficiente para el producto " + producto.codigo() + ".");
+            }
+
+            productos.add(new ProductoPedido(producto, item.cantidad()));
+        }
+
+        Pedido pedido = construirPedido(request, correoAutenticado, productos);
+        Pedido guardado = pedidoRepository.save(pedido);
+        guardado.setCodigo(String.format("PED-%06d", guardado.getId()));
+        guardado = pedidoRepository.save(guardado);
+
+        // El carrito se conserva hasta que el pago se concrete correctamente.
+        return aResponse(guardado);
     }
 
     @Transactional(readOnly = true)
@@ -152,9 +129,19 @@ public class PedidoService {
         return aResponse(pedido);
     }
 
+    @Transactional(readOnly = true)
+    public PedidoResponseDTO buscarInterno(String codigo) {
+        return aResponse(obtenerPedido(codigo));
+    }
+
     @Transactional
     public PedidoResponseDTO actualizarEstado(String codigo, EstadoPedidoRequestDTO request) {
         Pedido pedido = obtenerPedido(codigo);
+
+        if (!pedido.isPagado()) {
+            throw new IllegalStateException("No se puede avanzar el estado operacional de un pedido sin pagar.");
+        }
+
         EstadoPedido nuevoEstado = EstadoPedido.desdeEtiqueta(request.estado());
 
         if (nuevoEstado.ordinal() <= pedido.getEstado().ordinal()) {
@@ -165,8 +152,11 @@ public class PedidoService {
             throw new IllegalArgumentException("El estado del pedido solo puede avanzar.");
         }
 
-        pedido.setEstado(nuevoEstado);
+        if (nuevoEstado.ordinal() != pedido.getEstado().ordinal() + 1) {
+            throw new IllegalArgumentException("El estado del pedido debe avanzar una etapa a la vez.");
+        }
 
+        pedido.setEstado(nuevoEstado);
         return aResponse(pedidoRepository.save(pedido));
     }
 
@@ -174,14 +164,47 @@ public class PedidoService {
     public PedidoResponseDTO marcarPagado(String codigo) {
         Pedido pedido = obtenerPedido(codigo);
 
-        if (!pedido.isPagado()) {
-            pedido.setPagado(true);
-            pedido = pedidoRepository.save(pedido);
-            if (registrarVenta(pedido)) {
-                pedido.setVentaRegistrada(true);
-                pedido = pedidoRepository.save(pedido);
-            }
+        if (pedido.isPagado()) {
+            return aResponse(pedido);
         }
+
+        List<Map<String, Object>> productos = pedido.getProductos().stream()
+                .map(detalle -> Map.<String, Object>of(
+                        "codigo", detalle.getCodigo(),
+                        "cantidad", detalle.getCantidad()))
+                .toList();
+
+        // Catálogo aplica el descuento de forma atómica e idempotente por código de pedido.
+        catalogoClient.post()
+                .uri("/api/catalogo/interno/pedidos/{codigo}/descontar-stock", codigo)
+                .header("X-Internal-Token", internalToken)
+                .body(Map.of("productos", productos))
+                .retrieve()
+                .toBodilessEntity();
+
+        pedido.setPagado(true);
+        pedido.setFechaPago(LocalDateTime.now());
+        pedido = pedidoRepository.save(pedido);
+
+        try {
+            carritoClient.delete()
+                    .uri("/api/carrito/interno/{correo}", pedido.getCorreoCliente())
+                    .header("X-Internal-Token", internalToken)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RuntimeException exception) {
+            // La compra ya está pagada; un fallo al vaciar el carrito no debe revertirla.
+        }
+
+        int cantidadProductos = pedido.getProductos().stream()
+                .mapToInt(DetallePedido::getCantidad)
+                .sum();
+
+        eventPublisher.publishEvent(new PedidoPagadoEvent(
+                pedido.getCodigo(),
+                pedido.getFechaPago(),
+                pedido.getTotal(),
+                cantidadProductos));
 
         return aResponse(pedido);
     }
@@ -189,7 +212,7 @@ public class PedidoService {
     private Pedido construirPedido(
             PedidoCreateRequestDTO request,
             String correoAutenticado,
-            List<ProductoReservado> reservados) {
+            List<ProductoPedido> productos) {
 
         BigDecimal subtotal = BigDecimal.ZERO;
         Pedido pedido = new Pedido();
@@ -198,31 +221,27 @@ public class PedidoService {
         pedido.setEstado(EstadoPedido.CONFIRMADO);
         pedido.setPagado(false);
         pedido.setVentaRegistrada(false);
-        pedido.setPagoRegistrado(false);
         pedido.setMetodoEntrega(request.metodoEntrega());
         pedido.setMetodoPago(request.metodoPago());
         pedido.setCliente(construirDatosCliente(request.cliente(), request.metodoEntrega(), correoAutenticado));
 
-        for (ProductoReservado reservado : reservados) {
-            ProductoCatalogoDTO producto = reservado.producto();
+        for (ProductoPedido productoPedido : productos) {
+            ProductoCatalogoDTO producto = productoPedido.producto();
             BigDecimal precio = producto.precio();
-            BigDecimal importe = precio.multiply(BigDecimal.valueOf(reservado.cantidad()));
-
+            BigDecimal importe = precio.multiply(BigDecimal.valueOf(productoPedido.cantidad()));
             subtotal = subtotal.add(importe);
 
             DetallePedido detalle = new DetallePedido();
             detalle.setCodigo(producto.codigo());
             detalle.setNombre(producto.nombre());
             detalle.setPrecio(precio);
-            detalle.setCantidad(reservado.cantidad());
-
+            detalle.setCantidad(productoPedido.cantidad());
             pedido.agregarProducto(detalle);
         }
 
         BigDecimal envio = request.metodoEntrega() == MetodoEntrega.DESPACHO
                 ? COSTO_ENVIO
                 : BigDecimal.ZERO;
-
         BigDecimal iva = subtotal.multiply(new BigDecimal("19"))
                 .divide(new BigDecimal("119"), 0, RoundingMode.HALF_UP);
 
@@ -255,91 +274,7 @@ public class PedidoService {
         cliente.setDireccion(request.direccion() == null ? "" : request.direccion().trim());
         cliente.setNumeroVivienda(request.numeroVivienda() == null ? "" : request.numeroVivienda().trim());
         cliente.setCodigoPostal(request.codigoPostal() == null ? "" : request.codigoPostal().trim());
-
         return cliente;
-    }
-
-    private void liberarReservas(List<ProductoReservado> reservados) {
-        for (ProductoReservado reservado : reservados) {
-            try {
-                catalogoClient.post()
-                        .uri("/api/catalogo/interno/productos/{codigo}/liberar", reservado.producto().codigo())
-                        .header("X-Internal-Token", internalToken)
-                        .body(Map.of("cantidad", reservado.cantidad()))
-                        .retrieve()
-                        .toBodilessEntity();
-            } catch (RuntimeException exception) {
-                logger.error("No se pudo liberar la reserva del producto {}", reservado.producto().codigo(), exception);
-            }
-        }
-    }
-
-    @Scheduled(fixedDelayString = "${services.pagos.retry-ms:60000}")
-    @Transactional
-    public void sincronizarPagosPendientes() {
-        List<Pedido> pendientes = pedidoRepository.findByPagoRegistradoFalse();
-
-        for (Pedido pedido : pendientes) {
-            if (registrarPagoPendiente(pedido)) {
-                pedido.setPagoRegistrado(true);
-                pedidoRepository.save(pedido);
-            }
-        }
-    }
-
-    @Scheduled(fixedDelayString = "${services.ventas.retry-ms:60000}")
-    @Transactional
-    public void sincronizarVentasPendientes() {
-        List<Pedido> pendientes = pedidoRepository.findByPagadoTrueAndVentaRegistradaFalse();
-
-        for (Pedido pedido : pendientes) {
-            if (registrarVenta(pedido)) {
-                pedido.setVentaRegistrada(true);
-                pedidoRepository.save(pedido);
-            }
-        }
-    }
-
-    private boolean registrarPagoPendiente(Pedido pedido) {
-        try {
-            pagosClient.post()
-                    .uri("/api/pagos/interno")
-                    .header("X-Internal-Token", internalToken)
-                    .body(Map.of(
-                            "codigoPedido", pedido.getCodigo(),
-                            "correoCliente", pedido.getCorreoCliente(),
-                            "monto", pedido.getTotal(),
-                            "metodoPago", pedido.getMetodoPago().name()))
-                    .retrieve()
-                    .toBodilessEntity();
-
-            return true;
-        } catch (RuntimeException exception) {
-            logger.error("No se pudo registrar el intento de pago del pedido {}.", pedido.getCodigo(), exception);
-            return false;
-        }
-    }
-
-    private boolean registrarVenta(Pedido pedido) {
-        try {
-            ventasClient.post()
-                    .uri("/api/ventas/interno")
-                    .header("X-Internal-Token", internalToken)
-                    .body(Map.of(
-                            "codigoPedido", pedido.getCodigo(),
-                            "fecha", pedido.getFechaRegistro(),
-                            "total", pedido.getTotal(),
-                            "cantidadProductos", pedido.getProductos().stream()
-                                    .mapToInt(DetallePedido::getCantidad)
-                                    .sum()))
-                    .retrieve()
-                    .toBodilessEntity();
-
-            return true;
-        } catch (RuntimeException exception) {
-            logger.error("El pedido {} quedó pagado, pero la venta no pudo sincronizarse.", pedido.getCodigo(), exception);
-            return false;
-        }
     }
 
     private Pedido obtenerPedido(String codigo) {
@@ -386,7 +321,6 @@ public class PedidoService {
                 pedido.getCorreoCliente());
     }
 
-    private record ProductoReservado(ProductoCatalogoDTO producto, int cantidad) {
+    private record ProductoPedido(ProductoCatalogoDTO producto, int cantidad) {
     }
-
 }

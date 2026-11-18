@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +23,16 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final ActivacionService activacionService;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
-            ActivacionService activacionService) {
+            ActivacionService activacionService,
+            PasswordEncoder passwordEncoder) {
 
         this.usuarioRepository = usuarioRepository;
         this.activacionService = activacionService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -61,6 +65,10 @@ public class UsuarioService {
             throw new IllegalArgumentException("Ya existe una cuenta con ese correo.");
         }
 
+        if (request.rol() == RolUsuario.CLIENTE) {
+            throw new IllegalArgumentException("Los clientes deben registrarse desde el formulario público.");
+        }
+
         Usuario usuario = new Usuario();
         usuario.setRun(run);
         usuario.setNombre(request.nombre().trim());
@@ -72,8 +80,9 @@ public class UsuarioService {
         usuario.setDireccion(request.direccion().trim());
         usuario.setRol(request.rol());
         usuario.setEstado(EstadoUsuario.ACTIVO);
-        usuario.setRequiereCambioClave(true);
-        usuario.agregarAuditoria("Cuenta creada por administración " + LocalDateTime.now());
+        usuario.setPasswordHash(passwordEncoder.encode(request.claveInicial()));
+        usuario.setRequiereCambioClave(false);
+        usuario.agregarAuditoria("Cuenta creada por administración con contraseña inicial " + LocalDateTime.now());
 
         return UsuarioMapper.aResponse(usuarioRepository.save(usuario));
     }
@@ -107,6 +116,16 @@ public class UsuarioService {
         usuario.setDireccion(request.direccion().trim());
         usuario.setRol(request.rol());
         usuario.setEstado(request.estado());
+
+        if (request.claveInicial() != null && !request.claveInicial().isBlank()) {
+            if (request.rol() == RolUsuario.CLIENTE) {
+                throw new IllegalArgumentException("La asignación de contraseñas desde administración está reservada a cuentas internas.");
+            }
+            usuario.setPasswordHash(passwordEncoder.encode(request.claveInicial()));
+            usuario.setRequiereCambioClave(false);
+            usuario.agregarAuditoria("Contraseña inicial asignada por administración " + LocalDateTime.now());
+        }
+
         usuario.agregarAuditoria("Datos actualizados " + LocalDateTime.now());
 
         return UsuarioMapper.aResponse(usuarioRepository.save(usuario));

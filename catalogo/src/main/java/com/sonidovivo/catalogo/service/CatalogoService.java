@@ -1,6 +1,7 @@
 package com.sonidovivo.catalogo.service;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,23 +9,30 @@ import org.springframework.transaction.annotation.Transactional;
 import com.sonidovivo.catalogo.dto.CategoriaResponseDTO;
 import com.sonidovivo.catalogo.dto.ProductoRequestDTO;
 import com.sonidovivo.catalogo.dto.ProductoResponseDTO;
+import com.sonidovivo.catalogo.dto.DescuentoStockPedidoRequestDTO;
+import com.sonidovivo.catalogo.dto.DetalleStockPedidoDTO;
 import com.sonidovivo.catalogo.model.Categoria;
 import com.sonidovivo.catalogo.model.Producto;
+import com.sonidovivo.catalogo.model.DescuentoStockPedido;
 import com.sonidovivo.catalogo.repository.CategoriaRepository;
 import com.sonidovivo.catalogo.repository.ProductoRepository;
+import com.sonidovivo.catalogo.repository.DescuentoStockPedidoRepository;
 
 @Service
 public class CatalogoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final DescuentoStockPedidoRepository descuentoStockPedidoRepository;
 
     public CatalogoService(
             ProductoRepository productoRepository,
-            CategoriaRepository categoriaRepository) {
+            CategoriaRepository categoriaRepository,
+            DescuentoStockPedidoRepository descuentoStockPedidoRepository) {
 
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
+        this.descuentoStockPedidoRepository = descuentoStockPedidoRepository;
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +107,25 @@ public class CatalogoService {
         }
 
         return aResponse(obtenerProducto(codigo));
+    }
+
+    @Transactional
+    public void descontarStockPorPedido(String codigoPedido, DescuentoStockPedidoRequestDTO request) {
+        if (descuentoStockPedidoRepository.findByCodigoPedido(codigoPedido).isPresent()) {
+            return;
+        }
+
+        for (DetalleStockPedidoDTO detalle : request.productos()) {
+            if (productoRepository.reservarStock(detalle.codigo(), detalle.cantidad()) == 0) {
+                throw new IllegalStateException(
+                        "No hay stock suficiente para completar el pedido. Producto: " + detalle.codigo());
+            }
+        }
+
+        DescuentoStockPedido descuento = new DescuentoStockPedido();
+        descuento.setCodigoPedido(codigoPedido);
+        descuento.setFechaRegistro(LocalDateTime.now());
+        descuentoStockPedidoRepository.save(descuento);
     }
 
     @Transactional

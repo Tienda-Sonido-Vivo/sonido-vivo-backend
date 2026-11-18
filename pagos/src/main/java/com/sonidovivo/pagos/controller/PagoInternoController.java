@@ -24,7 +24,7 @@ import com.sonidovivo.security.InternalTokenValidator;
 import jakarta.validation.Valid;
 
 @RestController
-@Tag(name = "Pagos internos", description = "Registro interno de pagos durante el proceso de compra.")
+@Tag(name = "Pagos internos", description = "Registro interno heredado de pagos pendientes. El checkout actualizado utiliza el endpoint autenticado de procesamiento de pago iniciado por CLIENTE.")
 @RequestMapping("/api/pagos/interno")
 public class PagoInternoController {
 
@@ -39,7 +39,7 @@ public class PagoInternoController {
         this.tokenValidator = tokenValidator;
     }
     @Operation(summary = "Registrar pago pendiente",
-            description = "Registra un pago pendiente durante el proceso interno de creación de pedidos. Requiere el token de comunicación entre microservicios.")
+            description = "Registra un pago pendiente desde un proceso interno heredado. Pedidos ya no lo invoca al crear un pedido. Requiere el token interno.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pago pendiente registrado correctamente."),
             @ApiResponse(responseCode = "400", description = "Los datos del pago no son válidos."),

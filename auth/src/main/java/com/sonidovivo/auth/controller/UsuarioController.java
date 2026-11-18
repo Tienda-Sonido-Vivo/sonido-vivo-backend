@@ -69,10 +69,10 @@ public class UsuarioController {
         return usuarioService.buscarPorRun(run);
     }
     @Operation(summary = "Crear usuario interno",
-            description = "Crea una cuenta interna y permite asignar el rol correspondiente. Disponible exclusivamente para administradores.")
+            description = "Crea una cuenta ADMIN o VENDEDOR y asigna su contraseña inicial. Disponible exclusivamente para ADMIN.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Usuario interno creado correctamente."),
+            @ApiResponse(responseCode = "201", description = "Usuario interno creado correctamente con acceso inmediato mediante la contraseña inicial."),
             @ApiResponse(responseCode = "400", description = "Los datos enviados no superan las validaciones o la cuenta ya existe."),
             @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
             @ApiResponse(responseCode = "403", description = "Solo un administrador puede crear usuarios internos.")
@@ -83,7 +83,7 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(request));
     }
     @Operation(summary = "Actualizar usuario",
-            description = "Actualiza los datos de una cuenta existente. Disponible exclusivamente para administradores.")
+            description = "Actualiza los datos de una cuenta existente y, si se envía, permite asignar una contraseña inicial o nueva. Disponible exclusivamente para administradores.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Usuario actualizado correctamente."),
@@ -119,7 +119,7 @@ public class UsuarioController {
         return usuarioService.cambiarEstado(run, estado, authentication.getName());
     }
     @Operation(summary = "Generar activación de usuario",
-            description = "Genera o renueva los datos necesarios para activar una cuenta. Disponible exclusivamente para administradores.")
+            description = "Genera un token únicamente para una cuenta heredada que todavía requiera activación. Las cuentas internas nuevas se crean con contraseña inicial y no requieren este endpoint.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Datos de activación generados correctamente."),

@@ -22,6 +22,4 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     @EntityGraph(attributePaths = "productos")
     List<Pedido> findByPagadoTrueAndVentaRegistradaFalse();
 
-    @EntityGraph(attributePaths = "productos")
-    List<Pedido> findByPagoRegistradoFalse();
 }

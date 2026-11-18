@@ -67,30 +67,30 @@ public class ProductoController {
         return catalogoService.buscarPorCodigo(codigo);
     }
     @Operation(summary = "Crear producto",
-            description = "Registra un nuevo producto en el catálogo. Disponible exclusivamente para administradores.")
+            description = "Registra un nuevo producto en el catálogo. Disponible para administradores y vendedores.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Producto creado correctamente."),
             @ApiResponse(responseCode = "400", description = "Los datos no son válidos o ya existe un producto con ese código."),
             @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
-            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos de administrador.")
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos para gestionar productos.")
     })
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(catalogoService.crear(request));
     }
     @Operation(summary = "Actualizar producto",
-            description = "Modifica los datos de un producto existente. Disponible exclusivamente para administradores.")
+            description = "Modifica los datos de un producto existente. Disponible para administradores y vendedores.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Producto actualizado correctamente."),
             @ApiResponse(responseCode = "400", description = "Los datos enviados no son válidos o no se encontró el producto."),
             @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
-            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos de administrador.")
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos para gestionar productos.")
     })
     @PutMapping("/{codigo}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ProductoResponseDTO actualizar(
             @PathVariable String codigo,
             @Valid @RequestBody ProductoRequestDTO request) {
@@ -116,16 +116,16 @@ public class ProductoController {
         return catalogoService.actualizarStock(codigo, request.stock());
     }
     @Operation(summary = "Eliminar producto",
-            description = "Elimina un producto del catálogo. Disponible exclusivamente para administradores.")
+            description = "Elimina un producto del catálogo. Disponible para administradores y vendedores.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Producto eliminado correctamente."),
             @ApiResponse(responseCode = "400", description = "No se encontró el producto indicado."),
             @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
-            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos de administrador.")
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos para gestionar productos.")
     })
     @DeleteMapping("/{codigo}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
     public ResponseEntity<Void> eliminar(@PathVariable String codigo) {
         catalogoService.eliminar(codigo);
         return ResponseEntity.noContent().build();

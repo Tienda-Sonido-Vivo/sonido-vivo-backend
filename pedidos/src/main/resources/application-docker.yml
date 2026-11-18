@@ -9,8 +9,6 @@ services:
     url: http://SONIDO-VIVO-CATALOGO
   carrito:
     url: http://SONIDO-VIVO-CARRITO
-  pagos:
-    url: http://SONIDO-VIVO-PAGOS
   ventas:
     url: http://SONIDO-VIVO-VENTAS
 

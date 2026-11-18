@@ -23,7 +23,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API de Pagos de Sonido Vivo")
-                        .description("API REST para registrar, consultar y confirmar pagos.")
+                        .description("API REST para procesar el pago iniciado por el cliente y consultar pagos.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Sonido Vivo")

@@ -1,4 +1,8 @@
 server:
+  tomcat:
+    threads:
+      max: 40
+      min-spare: 5
   port: 8080
 
 spring:
@@ -9,6 +13,12 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -30,6 +40,9 @@ app:
     admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
 
 eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
   client:
     register-with-eureka: true
     fetch-registry: true
