@@ -20,6 +20,8 @@ import com.sonidovivo.pagos.model.Pago;
 import com.sonidovivo.pagos.repository.PagoRepository;
 import com.sonidovivo.pagos.dto.PedidoPagoDTO;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+
 @Service
 public class PagoService {
 
@@ -30,6 +32,19 @@ public class PagoService {
     private final String internalToken;
 
     public PagoService(
+        PagoRepository pagoRepository,
+        @Qualifier("loadBalancedRestClientBuilder")
+        RestClient.Builder restClientBuilder,
+        @Value("${services.pedidos.url}") String pedidosUrl,
+        @Value("${app.internal-token}") String internalToken) {
+
+    this.pagoRepository = pagoRepository;
+    this.pedidosClient = restClientBuilder.baseUrl(pedidosUrl).build();
+    this.internalToken = internalToken;
+}
+
+    /* 
+    public PagoService(
             PagoRepository pagoRepository,
             RestClient.Builder restClientBuilder,
             @Value("${services.pedidos.url}") String pedidosUrl,
@@ -39,6 +54,7 @@ public class PagoService {
         this.pedidosClient = restClientBuilder.baseUrl(pedidosUrl).build();
         this.internalToken = internalToken;
     }
+    */
 
     @Transactional
     public PagoResponseDTO registrarPendiente(PagoRegistroInternoDTO request) {
