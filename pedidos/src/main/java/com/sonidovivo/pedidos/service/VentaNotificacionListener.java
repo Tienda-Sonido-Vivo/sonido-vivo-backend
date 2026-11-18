@@ -17,6 +17,8 @@ import com.sonidovivo.pedidos.event.PedidoPagadoEvent;
 import com.sonidovivo.pedidos.model.Pedido;
 import com.sonidovivo.pedidos.repository.PedidoRepository;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+
 @Component
 public class VentaNotificacionListener {
 
@@ -27,6 +29,19 @@ public class VentaNotificacionListener {
     private final String internalToken;
 
     public VentaNotificacionListener(
+        PedidoRepository pedidoRepository,
+        @Qualifier("loadBalancedRestClientBuilder")
+        RestClient.Builder restClientBuilder,
+        @Value("${services.ventas.url}") String ventasUrl,
+        @Value("${app.internal-token}") String internalToken) {
+
+    this.pedidoRepository = pedidoRepository;
+    this.ventasClient = restClientBuilder.baseUrl(ventasUrl).build();
+    this.internalToken = internalToken;
+}
+
+    /* 
+    public VentaNotificacionListener(
             PedidoRepository pedidoRepository,
             RestClient.Builder restClientBuilder,
             @Value("${services.ventas.url}") String ventasUrl,
@@ -35,6 +50,8 @@ public class VentaNotificacionListener {
         this.ventasClient = restClientBuilder.baseUrl(ventasUrl).build();
         this.internalToken = internalToken;
     }
+
+    */
 
     @Async("ventasTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

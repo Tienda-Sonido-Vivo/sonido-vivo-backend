@@ -33,6 +33,8 @@ import com.sonidovivo.pedidos.model.MetodoEntrega;
 import com.sonidovivo.pedidos.model.Pedido;
 import com.sonidovivo.pedidos.repository.PedidoRepository;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+
 @Service
 public class PedidoService {
 
@@ -47,12 +49,23 @@ public class PedidoService {
     private final ApplicationEventPublisher eventPublisher;
 
     public PedidoService(
+
+        PedidoRepository pedidoRepository,
+        @Qualifier("loadBalancedRestClientBuilder")
+        RestClient.Builder restClientBuilder,
+        ApplicationEventPublisher eventPublisher,
+        @Value("${services.catalogo.url}") String catalogoUrl,
+        @Value("${services.carrito.url}") String carritoUrl,
+        @Value("${app.internal-token}") String internalToken) {
+
+        /* 
             PedidoRepository pedidoRepository,
             RestClient.Builder restClientBuilder,
             ApplicationEventPublisher eventPublisher,
             @Value("${services.catalogo.url}") String catalogoUrl,
             @Value("${services.carrito.url}") String carritoUrl,
             @Value("${app.internal-token}") String internalToken) {
+        */
 
         this.pedidoRepository = pedidoRepository;
         this.catalogoClient = restClientBuilder.clone().baseUrl(catalogoUrl).build();
