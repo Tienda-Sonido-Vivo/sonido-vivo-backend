@@ -1,15 +1,17 @@
 
 package com.sonidovivo.carrito;
 
+import java.time.Duration;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.web.client.RestClient;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {
@@ -22,8 +24,12 @@ public class CarritoApplication {
         SpringApplication.run(CarritoApplication.class, args);
     }
 
+    // Cliente HTTP normal.
+    // @Primary indica que será el cliente seleccionado por defecto.
     @Bean
+    @Primary
     RestClient.Builder restClientBuilder() {
+
         SimpleClientHttpRequestFactory requestFactory =
                 new SimpleClientHttpRequestFactory();
 
@@ -34,9 +40,12 @@ public class CarritoApplication {
                 .requestFactory(requestFactory);
     }
 
+    // Cliente HTTP con balanceo de carga.
+    // Se utilizará para comunicarse con otros microservicios.
     @Bean
     @LoadBalanced
     RestClient.Builder loadBalancedRestClientBuilder() {
+
         return RestClient.builder();
     }
 }
