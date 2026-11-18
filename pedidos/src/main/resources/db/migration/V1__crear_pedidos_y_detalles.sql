@@ -1,0 +1,43 @@
+CREATE TABLE pedidos (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    codigo VARCHAR(20) NULL,
+    correo_cliente VARCHAR(150) NOT NULL,
+    fecha_registro DATETIME NOT NULL,
+    estado VARCHAR(30) NOT NULL,
+    pagado BOOLEAN NOT NULL DEFAULT FALSE,
+    venta_registrada BOOLEAN NOT NULL DEFAULT FALSE,
+    pago_registrado BOOLEAN NOT NULL DEFAULT FALSE,
+    metodo_entrega VARCHAR(20) NOT NULL,
+    metodo_pago VARCHAR(20) NOT NULL,
+    subtotal DECIMAL(12, 2) NOT NULL,
+    envio DECIMAL(12, 2) NOT NULL,
+    iva DECIMAL(12, 2) NOT NULL,
+    total DECIMAL(12, 2) NOT NULL,
+    cliente_nombre VARCHAR(80) NOT NULL,
+    cliente_apellidos VARCHAR(100) NOT NULL,
+    cliente_telefono VARCHAR(25) NOT NULL,
+    cliente_correo VARCHAR(150) NOT NULL,
+    cliente_region VARCHAR(100) NOT NULL,
+    cliente_comuna VARCHAR(100) NOT NULL,
+    cliente_direccion VARCHAR(180) NOT NULL,
+    cliente_numero_vivienda VARCHAR(80) NULL,
+    cliente_codigo_postal VARCHAR(20) NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_pedidos_codigo UNIQUE (codigo),
+    INDEX idx_pedidos_correo_fecha (correo_cliente, fecha_registro),
+    CONSTRAINT ck_pedidos_total CHECK (total >= 0),
+    CONSTRAINT ck_pedidos_subtotal CHECK (subtotal >= 0)
+);
+
+CREATE TABLE detalles_pedido (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    pedido_id BIGINT NOT NULL,
+    producto_codigo VARCHAR(20) NOT NULL,
+    producto_nombre VARCHAR(150) NOT NULL,
+    precio DECIMAL(12, 2) NOT NULL,
+    cantidad INT NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_detalle_pedido FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+    CONSTRAINT ck_detalle_precio CHECK (precio > 0),
+    CONSTRAINT ck_detalle_cantidad CHECK (cantidad > 0)
+);

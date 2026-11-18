@@ -5,7 +5,7 @@ spring:
   application:
     name: sonido-vivo-pagos
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/sonido_vivo_pagos?useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/sonido_vivo_pagos?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
