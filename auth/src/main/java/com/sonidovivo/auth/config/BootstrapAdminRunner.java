@@ -46,6 +46,10 @@ public class BootstrapAdminRunner implements CommandLineRunner {
                 throw new IllegalStateException(
                         "Define ADMIN_BOOTSTRAP_PASSWORD para activar la cuenta administradora inicial.");
             }
+            if (claveAdministrador.length() < 4 || claveAdministrador.length() > 10) {
+                throw new IllegalStateException(
+                        "ADMIN_BOOTSTRAP_PASSWORD debe tener entre 4 y 10 caracteres.");
+            }
 
             administrador.setPasswordHash(passwordEncoder.encode(claveAdministrador));
             administrador.setEstado(EstadoUsuario.ACTIVO);
@@ -58,27 +62,85 @@ public class BootstrapAdminRunner implements CommandLineRunner {
     }
 
     private void configurarUsuariosDePrueba() {
-        String[] correos = {
-                "admin@demo.cl",
+        configurarUsuarioDePrueba(
                 "vendedor1@demo.cl",
+                "987654321",
+                "María",
+                "González Soto",
+                "Valparaíso",
+                "Viña del Mar",
+                "Avenida Demo 456",
+                RolUsuario.VENDEDOR);
+
+        configurarUsuarioDePrueba(
                 "vendedor2@demo.cl",
-                "usuario@demo.cl"
-        };
+                "112233445",
+                "Pedro",
+                "Ramírez López",
+                "Biobío",
+                "Concepción",
+                "Calle Principal 789",
+                RolUsuario.VENDEDOR);
 
-        for (String correo : correos) {
-            usuarioRepository.findByEmailIgnoreCase(correo).ifPresent(usuario -> {
-                boolean necesitaClave = usuario.getPasswordHash() == null
-                        || !passwordEncoder.matches("1234", usuario.getPasswordHash());
+        configurarUsuarioDePrueba(
+                "usuario@demo.cl",
+                "556677889",
+                "Ana",
+                "Martínez Díaz",
+                "Metropolitana de Santiago",
+                "Ñuñoa",
+                "Avenida Siempre Viva 123",
+                RolUsuario.CLIENTE);
+    }
 
-                if (necesitaClave) {
-                    usuario.setPasswordHash(passwordEncoder.encode("1234"));
-                    usuario.setEstado(EstadoUsuario.ACTIVO);
-                    usuario.setRequiereCambioClave(false);
-                    usuario.agregarAuditoria("Clave de prueba 1234 configurada automáticamente");
-                    usuarioRepository.save(usuario);
-                }
-            });
+    private void configurarUsuarioDePrueba(
+            String correo,
+            String run,
+            String nombre,
+            String apellidos,
+            String region,
+            String comuna,
+            String direccion,
+            RolUsuario rol) {
+
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(correo)
+                .orElseGet(() -> crearUsuarioDePrueba(
+                        correo, run, nombre, apellidos, region, comuna, direccion, rol));
+
+        if (usuario.getPasswordHash() == null
+                || !passwordEncoder.matches("1234", usuario.getPasswordHash())) {
+            usuario.setPasswordHash(passwordEncoder.encode("1234"));
+            usuario.setEstado(EstadoUsuario.ACTIVO);
+            usuario.setRequiereCambioClave(false);
+            usuario.agregarAuditoria("Clave de prueba 1234 configurada automáticamente");
+            usuarioRepository.save(usuario);
         }
+    }
+
+    private Usuario crearUsuarioDePrueba(
+            String correo,
+            String run,
+            String nombre,
+            String apellidos,
+            String region,
+            String comuna,
+            String direccion,
+            RolUsuario rol) {
+
+        Usuario usuario = new Usuario();
+        usuario.setRun(run);
+        usuario.setNombre(nombre);
+        usuario.setApellidos(apellidos);
+        usuario.setEmail(correo);
+        usuario.setRegion(region);
+        usuario.setComuna(comuna);
+        usuario.setDireccion(direccion);
+        usuario.setRol(rol);
+        usuario.setEstado(EstadoUsuario.ACTIVO);
+        usuario.setRequiereCambioClave(false);
+        usuario.setPasswordHash(passwordEncoder.encode("1234"));
+        usuario.agregarAuditoria("Usuario de prueba creado automáticamente");
+        return usuarioRepository.save(usuario);
     }
 
     private Usuario crearAdministrador() {
