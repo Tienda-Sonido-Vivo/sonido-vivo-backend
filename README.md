@@ -30,7 +30,7 @@ Cada microservicio persistente tiene su propia base de datos y sus propias migra
 - La administración de usuarios está restringida al administrador.
 - Las contraseñas se almacenan con BCrypt.
 - Los usuarios de prueba de Sonido Vivo se conservan con sus datos originales.
-- Las contraseñas de texto plano del frontend no se migran. La cuenta `admin@demo.cl` recibe una contraseña definida por quien instala el proyecto mediante `ADMIN_BOOTSTRAP_PASSWORD`.
+- Las cuentas de prueba usan `1234` como contraseña académica. Esta configuración permite 4 a 10 caracteres.
 - ADMIN crea cuentas internas ADMIN o VENDEDOR y asigna su contraseña inicial. También puede asignar una contraseña a cuentas internas heredadas que aún no tengan una.
 - El registro público crea CLIENTE directamente; no requiere correo ni activación. Los endpoints heredados de activación permanecen disponibles por compatibilidad, pero no forman parte del flujo de integración.
 - Se valida el dígito verificador del RUN tanto en el frontend como en el backend.
@@ -144,7 +144,7 @@ Genera un token interno:
 [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
 ```
 
-Define también una contraseña segura para `ADMIN_BOOTSTRAP_PASSWORD`. No uses la contraseña de ejemplo ni subas `.env` a GitHub.
+Para esta entrega académica puedes usar `1234` en `ADMIN_BOOTSTRAP_PASSWORD`. Las cuentas de prueba también quedan configuradas con `1234`. No uses estas claves reales ni subas `.env` a GitHub.
 
 Para cargar las variables en la terminal actual:
 

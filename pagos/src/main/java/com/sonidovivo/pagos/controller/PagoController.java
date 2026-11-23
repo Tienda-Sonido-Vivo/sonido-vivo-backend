@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -91,5 +92,22 @@ public class PagoController {
             @PathVariable String codigoPedido,
             Authentication authentication) {
         return pagoService.procesarPago(codigoPedido, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Confirmar pago desde administración",
+            description = "Permite a ADMIN o VENDEDOR confirmar el pago de un pedido. La operación marca internamente el pedido como pagado y actualiza el registro de pago.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pago confirmado correctamente."),
+            @ApiResponse(responseCode = "401", description = "Se requiere autenticación."),
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene permisos de administrador o vendedor."),
+            @ApiResponse(responseCode = "404", description = "Pedido no encontrado."),
+            @ApiResponse(responseCode = "409", description = "No fue posible confirmar el pago o actualizar el stock.")
+    })
+    @PatchMapping("/{codigoPedido}/confirmar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+    public PagoResponseDTO confirmarPago(@PathVariable String codigoPedido) {
+        return pagoService.confirmarPago(codigoPedido);
     }
 }

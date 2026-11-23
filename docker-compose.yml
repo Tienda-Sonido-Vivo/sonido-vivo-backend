@@ -11,7 +11,7 @@ services:
       - sonido-vivo-mysql-data:/var/lib/mysql
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -54,7 +54,7 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -79,7 +79,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -104,7 +104,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -129,7 +129,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -154,7 +154,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -179,7 +179,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:
@@ -204,7 +204,7 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_started
       eureka-server:
         condition: service_started
     ports:

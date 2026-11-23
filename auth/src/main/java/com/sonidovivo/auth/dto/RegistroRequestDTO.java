@@ -17,5 +17,5 @@ public record RegistroRequestDTO(
         @NotBlank @Size(max = 100) String region,
         @NotBlank @Size(max = 100) String comuna,
         @NotBlank @Size(max = 180) String direccion,
-        @NotBlank @Size(min = 8, max = 72) String clave) {
+        @NotBlank @Size(min = 4, max = 10) String clave) {
 }

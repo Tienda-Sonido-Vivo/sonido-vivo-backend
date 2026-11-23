@@ -37,7 +37,7 @@ app:
     secure: ${AUTH_COOKIE_SECURE:false}
   bootstrap:
     admin-email: ${ADMIN_BOOTSTRAP_EMAIL:admin@demo.cl}
-    admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:1234}
 
 eureka:
   instance:

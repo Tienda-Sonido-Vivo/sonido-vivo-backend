@@ -6,6 +6,7 @@ import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -20,8 +21,6 @@ import com.sonidovivo.pagos.model.Pago;
 import com.sonidovivo.pagos.repository.PagoRepository;
 import com.sonidovivo.pagos.dto.PedidoPagoDTO;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-
 @Service
 public class PagoService {
 
@@ -32,20 +31,8 @@ public class PagoService {
     private final String internalToken;
 
     public PagoService(
-        PagoRepository pagoRepository,
-        @Qualifier("loadBalancedRestClientBuilder")
-        RestClient.Builder restClientBuilder,
-        @Value("${services.pedidos.url}") String pedidosUrl,
-        @Value("${app.internal-token}") String internalToken) {
-
-    this.pagoRepository = pagoRepository;
-    this.pedidosClient = restClientBuilder.baseUrl(pedidosUrl).build();
-    this.internalToken = internalToken;
-}
-
-    /* 
-    public PagoService(
             PagoRepository pagoRepository,
+            @Qualifier("loadBalancedRestClientBuilder")
             RestClient.Builder restClientBuilder,
             @Value("${services.pedidos.url}") String pedidosUrl,
             @Value("${app.internal-token}") String internalToken) {
@@ -54,7 +41,6 @@ public class PagoService {
         this.pedidosClient = restClientBuilder.baseUrl(pedidosUrl).build();
         this.internalToken = internalToken;
     }
-    */
 
     @Transactional
     public PagoResponseDTO registrarPendiente(PagoRegistroInternoDTO request) {
@@ -124,6 +110,50 @@ public class PagoService {
             pago.setEstado(EstadoPago.FALLIDO);
             pago.setFechaPago(LocalDateTime.now());
             logger.warn("No se pudo completar el pago del pedido {}.", codigoPedido, exception);
+        }
+
+        return aResponse(pagoRepository.save(pago));
+    }
+
+    @Transactional
+    public PagoResponseDTO confirmarPago(String codigoPedido) {
+        PedidoPagoDTO pedido = pedidosClient.get()
+                .uri("/api/pedidos/interno/{codigo}", codigoPedido)
+                .header("X-Internal-Token", internalToken)
+                .retrieve()
+                .body(PedidoPagoDTO.class);
+
+        if (pedido == null) {
+            throw new IllegalStateException("Pedidos no devolvió información para confirmar el pago.");
+        }
+
+        Pago pago = pagoRepository.findByCodigoPedido(codigoPedido).orElseGet(Pago::new);
+        pago.setCodigoPedido(codigoPedido);
+        pago.setCorreoCliente(pedido.correoCliente().trim().toLowerCase(Locale.ROOT));
+        pago.setMonto(pedido.total());
+        pago.setMetodoPago(MetodoPago.valueOf(pedido.metodoPago().toUpperCase(Locale.ROOT)));
+
+        if (pedido.pagado()) {
+            pago.setEstado(EstadoPago.COMPLETADO);
+            pago.setFechaPago(LocalDateTime.now());
+            return aResponse(pagoRepository.save(pago));
+        }
+
+        try {
+            pedidosClient.patch()
+                    .uri("/api/pedidos/interno/{codigo}/pagado", codigoPedido)
+                    .header("X-Internal-Token", internalToken)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            pago.setEstado(EstadoPago.COMPLETADO);
+            pago.setFechaPago(LocalDateTime.now());
+        } catch (RuntimeException exception) {
+            pago.setEstado(EstadoPago.FALLIDO);
+            pago.setFechaPago(LocalDateTime.now());
+            pagoRepository.save(pago);
+            logger.warn("No se pudo confirmar el pago del pedido {}.", codigoPedido, exception);
+            throw exception;
         }
 
         return aResponse(pagoRepository.save(pago));

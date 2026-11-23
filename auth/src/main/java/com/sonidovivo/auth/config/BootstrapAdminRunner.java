@@ -53,6 +53,32 @@ public class BootstrapAdminRunner implements CommandLineRunner {
             administrador.agregarAuditoria("Clave inicial configurada por variables de entorno");
             usuarioRepository.save(administrador);
         }
+
+        configurarUsuariosDePrueba();
+    }
+
+    private void configurarUsuariosDePrueba() {
+        String[] correos = {
+                "admin@demo.cl",
+                "vendedor1@demo.cl",
+                "vendedor2@demo.cl",
+                "usuario@demo.cl"
+        };
+
+        for (String correo : correos) {
+            usuarioRepository.findByEmailIgnoreCase(correo).ifPresent(usuario -> {
+                boolean necesitaClave = usuario.getPasswordHash() == null
+                        || !passwordEncoder.matches("1234", usuario.getPasswordHash());
+
+                if (necesitaClave) {
+                    usuario.setPasswordHash(passwordEncoder.encode("1234"));
+                    usuario.setEstado(EstadoUsuario.ACTIVO);
+                    usuario.setRequiereCambioClave(false);
+                    usuario.agregarAuditoria("Clave de prueba 1234 configurada automáticamente");
+                    usuarioRepository.save(usuario);
+                }
+            });
+        }
     }
 
     private Usuario crearAdministrador() {

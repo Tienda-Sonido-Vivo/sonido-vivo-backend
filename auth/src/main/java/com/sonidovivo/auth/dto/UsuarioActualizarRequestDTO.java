@@ -21,5 +21,5 @@ public record UsuarioActualizarRequestDTO(
         @NotBlank @Size(max = 180) String direccion,
         @NotNull RolUsuario rol,
         @NotNull EstadoUsuario estado,
-        @Size(min = 8, max = 72) String claveInicial) {
+        @Size(min = 4, max = 10) String claveInicial) {
 }

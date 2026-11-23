@@ -20,5 +20,5 @@ public record UsuarioAdminRequestDTO(
         @NotBlank @Size(max = 100) String comuna,
         @NotBlank @Size(max = 180) String direccion,
         @NotNull RolUsuario rol,
-        @NotBlank @Size(min = 8, max = 72) String claveInicial) {
+        @NotBlank @Size(min = 4, max = 10) String claveInicial) {
 }
